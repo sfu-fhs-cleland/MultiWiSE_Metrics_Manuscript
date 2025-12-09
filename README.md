@@ -1,5 +1,5 @@
 # MultiWiSE_Metrics_Manuscript
-Code and data associated with Cleland et al. 2025: 'Multiyear Wildfire Smoke Exposure (MultiWiSE) metrics: A data-driven approach to characterizing episodic PM2.5 exposures for epidemiologic research on chronic health effects'
+Code and data associated with Cleland et al. 2025: 'Multiyear Wildfire Smoke Exposure (MultiWiSE) metrics: A data-driven approach to characterizing episodic PM2.5 exposures for epidemiologic research on the health effects of longer duration exposure'.
 
 ## Code
 The script used to generate the MultiWiSE metrics for BC census subdivisions for 2010-2023 can be found in 'Code.' The script allows for replication of the results included in the manuscript, including the data-driven approach used to process the 2010-2023 BC dissemination area-level daily PM2.5 data, generate weekly estimates of wildfire smoke (WFS) and non-WFS PM2.5, and calculate the 12 MultiWiSE Metrics for all census subdivisions in the province. It also includes code to generate the figures and tables included in the manuscript. 
