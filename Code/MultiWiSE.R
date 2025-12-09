@@ -1,6 +1,7 @@
-# MultiWiSE.R
+# MultiWiSE METHODS PAPER - R SCRIPT FOR RESULTS AND ANALYSIS
 # This code is associated with the manuscript 'Multiyear Wildfire Smoke Exposure (MultiWiSE) metrics: 
-# A data-driven approach to characterizing episodic PM2.5 exposures for epidemiologic research on chronic health effects'
+# A data-driven approach to characterizing episodic PM2.5 exposures for epidemiologic research on the 
+# health effects of longer duration exposure'.
 # The script allows for replication of the results included in the manuscript. It includes code for the data-driven approach  
 # used to process the 2010-2023 BC dissemination area-level PM2.5 data and generate the 12 MultiWiSE Metrics for all census 
 # subdivisions in the province. It also includes code to generate the figures and tables included in the manuscript. 
@@ -654,7 +655,7 @@ plot_weekly_avg_pm25_by_year <- function(csd_df, y_limits, line_thin = 0.25) {
 # Function to generate histogram of weekly sums (used to identify counterfactual value)
 plot_slope_histogram <- function(csd_df, y_limits, x_limits, binwidth = 8, line_thin = 0.25) {
   
-  median_slope <- median(csd_df$weekly_sum_pm25, na.rm = TRUE)
+  median_slope <- median(csd_df[csd_df$modified_z >= -2 & csd_df$modified_z <= 2,]$weekly_sum_pm25, na.rm = TRUE)
   
   z_vals <- csd_df$modified_z
   z_vals_norm <- which(!is.na(z_vals) & z_vals >= -2 & z_vals <= 2)
@@ -693,7 +694,7 @@ plot_slope_histogram <- function(csd_df, y_limits, x_limits, binwidth = 8, line_
     { if (!is.na(max_norm_slope)) geom_vline(xintercept = max_norm_slope, linetype = "dashed", show.legend = FALSE) } +
     # Median line
     geom_vline(
-      aes(xintercept = median_slope, color = "Median"),
+      aes(xintercept = median_slope, color = "Counterfactual"),
       linewidth = 1.2
     ) +
     # Manual scales
@@ -703,7 +704,7 @@ plot_slope_histogram <- function(csd_df, y_limits, x_limits, binwidth = 8, line_
     ) +
     scale_color_manual(
       name   = NULL,
-      values = c("Median" = "#0085E4")
+      values = c("Counterfactual" = "#0085E4")
     ) +
     guides(
       fill  = guide_legend(order = 1),
@@ -886,14 +887,14 @@ corr_order <- c(
   "1\\. Cumulative WFS PM<sub>2.5</sub> (mg/m³)"
 )
 
-# Build the Pearson correlation matrix
+# Build the Spearman correlation matrix
 metrics_numeric <- all_csd_metrics %>%
   select(all_of(corr_order)) %>%
   as.data.frame()
 
 cor_matrix <- cor(metrics_numeric,
                   use    = "complete.obs",
-                  method = "pearson")
+                  method = "spearman")
 
 # Mask the upper triangle
 masked_mat <- cor_matrix
@@ -907,7 +908,8 @@ corr_plot <- ggcorrplot(
   lab_size      = 3,
   ggtheme       = theme_minimal(),
   outline.color = "black",
-  legend.title  = "Correlation"
+  legend.title  = "Correlation",
+  digits = 3
 ) +
   scale_fill_gradient2(
     low      = "#B0C6DF",
@@ -1416,7 +1418,8 @@ s3 <- bc_csd %>%
   scale_fill_distiller(
     palette   = "YlOrRd", direction = 1, na.value = "grey80",
     name = expression(mu * g / m^3),
-    guide  = guide_colorbar(barwidth = 2.5, barheight = 16)
+    guide  = guide_colorbar(barwidth = 2.5, barheight = 16),
+    limits = c(6.0, 7.6)
   ) +
   theme_void() +
   theme(
@@ -1469,7 +1472,9 @@ s4 <- bc_csd %>%
   scale_fill_distiller(
     palette   = "YlOrRd", direction = 1, na.value = "grey80",
     name = expression(mu * g / m^3),
-    guide  = guide_colorbar(barwidth = 2.5, barheight = 16)
+    guide  = guide_colorbar(barwidth = 2.5, barheight = 16),
+    limits = c(6.3, 7.8),
+    breaks = c(6.3, 6.6, 6.9, 7.2, 7.5, 7.8)
   ) +
   theme_void() +
   theme(
@@ -1523,8 +1528,9 @@ s5 <- ggplot(map_data, aes(geometry = geometry, fill = total_pm25)) +
   scale_fill_distiller(
     palette = "YlOrRd", direction = 1,
     na.value = "grey80",
-    name = "mg/m³",
-    guide = guide_colorbar(barwidth = 2.5, barheight = 16)
+    name = expression(mu * g / m^3),
+    guide = guide_colorbar(barwidth = 2.5, barheight = 16),
+    limits = c(6.5, 9.5)
   ) +
   theme_void(base_size = 24) +
   theme(
@@ -1557,3 +1563,203 @@ ggsave(
   dpi      = 300
 )
 
+#### Figure S6 - Distributions of the 12 Metrics ####
+# Load and convert metrics to long format
+all_csd_metrics <- readRDS("./Processed_Data/CSD_MultiWiSE_metrics_2010-2023.RDS")
+
+all_csd_metrics_long <- all_csd_metrics %>%
+  pivot_longer(
+    cols      = -csd,
+    names_to  = "Metric",
+    values_to = "Value"
+  ) %>%
+  select(csd, Metric, Value) %>%
+  mutate(csd = str_extract(csd, "\\d+$"))
+
+# 1. Cumulative WFS PM2.5 (mg/m3)
+hist1 <- all_csd_metrics_long %>%
+  filter(Metric == "1. Cumulative WFS PM₂.₅ (mg/m³)") %>%
+  ggplot(aes(x=Value)) +
+  geom_histogram(bins = 30,  
+                 fill = RColorBrewer::brewer.pal(12, "Set3")[1], 
+                 color = RColorBrewer::brewer.pal(12, "Set3")[1], 
+                 alpha = 0.7)+
+  labs(title = expression(bold("1. Cumulative WFS PM"[2.5]))) +
+  xlab('mg/m³') + ylab('Count') +  
+  theme_classic(base_size = 24) +  
+  ylim(c(0,175)) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# 2. WFS Fraction (%)
+hist2 <- all_csd_metrics_long %>%
+  filter(Metric == "2. WFS Fraction (%)") %>%
+  ggplot(aes(x=Value)) +
+  geom_histogram(bins = 30,  
+                 fill = 'yellow2', 
+                 color ='yellow2', 
+                 alpha = 0.7)+
+  labs(title = "2. WFS Fraction") +
+  xlab('%') + ylab('Count') +  
+  theme_classic(base_size = 24) +  
+  ylim(c(0,175)) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# 3. Average WFS PM2.5 (ug/m3)
+hist3 <- all_csd_metrics_long %>%
+  filter(Metric == "3. Average WFS PM₂.₅ (µg/m³)") %>%
+  ggplot(aes(x=Value)) +
+  geom_histogram(bins = 30,  
+                 fill = RColorBrewer::brewer.pal(12, "Set3")[3], 
+                 color = RColorBrewer::brewer.pal(12, "Set3")[3], 
+                 alpha = 0.7)+
+  labs(title = expression(bold("3. Average WFS PM"[2.5]))) +
+  xlab('µg/m³') + ylab('Count') +  
+  theme_classic(base_size = 24) +  
+  ylim(c(0,175)) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# 4. Any WFS (# weeks)
+hist4 <- all_csd_metrics_long %>%
+  filter(Metric == "4. Any WFS (# weeks)") %>%
+  ggplot(aes(x=Value)) +
+  geom_histogram(bins = 30,  
+                 fill = RColorBrewer::brewer.pal(12, "Set3")[4], 
+                 color = RColorBrewer::brewer.pal(12, "Set3")[4], 
+                 alpha = 0.7)+
+  labs(title = "4. Any WFS") +
+  xlab('# weeks') + ylab('Count') +  
+  theme_classic(base_size = 24) +  
+  ylim(c(0,175)) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# 5. WFS PM2.5 > 5 ug/m3 (# weeks)
+hist5 <- all_csd_metrics_long %>%
+  filter(Metric == "5. WFS PM₂.₅ > 5 µg/m³ (# weeks)") %>%
+  ggplot(aes(x=Value)) +
+  geom_histogram(bins = 30,  
+                 fill = RColorBrewer::brewer.pal(12, "Set3")[5], 
+                 color = RColorBrewer::brewer.pal(12, "Set3")[5], 
+                 alpha = 0.7)+
+  labs(title = expression(bold("5. WFS PM"[2.5]*" > 5 µg/m³"))) +
+  xlab('# weeks') + ylab('Count') +  
+  theme_classic(base_size = 24) +  
+  ylim(c(0,175)) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# 6. Total PM2.5 > 25 ug/m3 (# weeks)
+hist6 <- all_csd_metrics_long %>%
+  filter(Metric == "6. Total PM₂.₅ > 25 µg/m³ (# weeks)") %>%
+  ggplot(aes(x=Value)) +
+  geom_histogram(bins = 30,  
+                 fill = RColorBrewer::brewer.pal(12, "Set3")[6], 
+                 color = RColorBrewer::brewer.pal(12, "Set3")[6], 
+                 alpha = 0.7)+
+  labs(title = expression(bold("6. Total PM"[2.5]*" > 25 µg/m³"))) +
+  xlab('# weeks') + ylab('Count') +  
+  theme_classic(base_size = 24) +  
+  ylim(c(0,175)) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+
+# 7. WFS Episodes (# episodes)
+hist7 <- all_csd_metrics_long %>%
+  filter(Metric == "7. WFS Episodes (# episodes)") %>%
+  ggplot(aes(x=Value)) +
+  geom_histogram(bins = 13,  
+                 fill = RColorBrewer::brewer.pal(12, "Set3")[7], 
+                 color = RColorBrewer::brewer.pal(12, "Set3")[7], 
+                 alpha = 0.7)+
+  labs(title = "7. WFS Episodes") +
+  xlab('# episodes') + ylab('Count') +  
+  theme_classic(base_size = 24) + 
+  ylim(c(0,175)) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# 8. Severe Episodes (# episodes)
+hist8 <- all_csd_metrics_long %>%
+  filter(Metric == "8. Severe Episodes (# episodes)") %>%
+  ggplot(aes(x=Value)) +
+  geom_histogram(bins = 8,  
+                 fill = 'pink3', 
+                 color = 'pink3', 
+                 alpha = 0.7)+
+  labs(title = "7. Severe Episodes") +
+  xlab('# episodes') + ylab('Count') +  
+  theme_classic(base_size = 24) + 
+  ylim(c(0,175)) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# 9. Longest Episode (# weeks)
+hist9 <- all_csd_metrics_long %>%
+  filter(Metric == "9. Longest Episode (# weeks)") %>%
+  ggplot(aes(x=Value)) +
+  geom_histogram(bins = 19,  
+                 fill = 'grey75', 
+                 color = 'grey75',
+                 alpha = 0.7)+
+  labs(title = "9. Longest Episode") +
+  xlab('# weeks') + ylab('Count') +  
+  theme_classic(base_size = 24) +  
+  ylim(c(0,175)) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# 10. Worst Episode (ug/m3)
+hist10 <- all_csd_metrics_long %>%
+  filter(Metric == "10. Worst Episode (µg/m³)") %>%
+  ggplot(aes(x=Value)) +
+  geom_histogram(bins = 30,  
+                 fill = RColorBrewer::brewer.pal(12, "Set3")[10], 
+                 color = RColorBrewer::brewer.pal(12, "Set3")[10], 
+                 alpha = 0.7)+
+  labs(title = "10. Worst Episode") +
+  xlab('µg/m³') + ylab('Count') +  
+  theme_classic(base_size = 24) +  
+  ylim(c(0,175)) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# 11. WFS from Severe Episodes (%)
+hist11 <- all_csd_metrics_long %>%
+  filter(Metric == "11. WFS from Severe Episodes (%)") %>%
+  ggplot(aes(x=Value)) +
+  geom_histogram(bins = 30,  
+                 fill = 'lightgreen', 
+                 color = 'lightgreen', 
+                 alpha = 0.7)+
+  labs(title = "11. WFS from Severe Episodes") +
+  xlab('%') + ylab('Count') +  
+  theme_classic(base_size = 24) +  
+  ylim(c(0,175)) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# 12. Average Recovery (# weeks)
+hist12 <- all_csd_metrics_long %>%
+  filter(Metric == "12. Average Recovery (# weeks)") %>%
+  ggplot(aes(x=Value)) +
+  geom_histogram(bins = 30,  
+                 fill = RColorBrewer::brewer.pal(12, "Set3")[12], 
+                 color = RColorBrewer::brewer.pal(12, "Set3")[12], 
+                 alpha = 0.7)+
+  labs(title = "12. Average Recovery") +
+  xlab('# weeks') + ylab('Count') +  
+  theme_classic(base_size = 24) +  
+  ylim(c(0,175)) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# Save combined plot as a .jpg
+jpeg(
+  filename = "./Results/FigureS6.jpg",
+  width    = 30,
+  height   = 32,
+  units    = "in",
+  res      = 300
+)
+
+# Arrange the 12 maps on a grid (4 by 3)
+grid.arrange(
+  hist1,  hist2,  hist3,  hist4,
+  hist5,  hist6,  hist7,  hist8,
+  hist9,  hist10, hist11, hist12,
+  ncol = 3
+)
+
+dev.off()
