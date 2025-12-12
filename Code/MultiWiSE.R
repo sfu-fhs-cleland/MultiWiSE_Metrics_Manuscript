@@ -1,7 +1,6 @@
 # MultiWiSE METHODS PAPER - R SCRIPT FOR RESULTS AND ANALYSIS
 # This code is associated with the manuscript 'Multiyear Wildfire Smoke Exposure (MultiWiSE) metrics: 
-# A data-driven approach to characterizing episodic PM2.5 exposures for epidemiologic research on the 
-# health effects of longer duration exposure'.
+# A data-driven approach to characterizing episodic PM2.5 exposures for epidemiologic research'.
 # The script allows for replication of the results included in the manuscript. It includes code for the data-driven approach  
 # used to process the 2010-2023 BC dissemination area-level PM2.5 data and generate the 12 MultiWiSE Metrics for all census 
 # subdivisions in the province. It also includes code to generate the figures and tables included in the manuscript. 
