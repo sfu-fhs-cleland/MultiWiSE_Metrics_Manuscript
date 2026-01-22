@@ -1389,7 +1389,7 @@ ggsave(
   dpi      = 300
 )
 
-#### Figure S3 - Map of the counterfactual weekly value ####
+#### Figure S3 - Map and histogram of the counterfactual weekly value ####
 csd_data <- readRDS("./Processed_Data/CSD_weekly_PM25_2010-2023_processed.RDS")
 
 bc_csd <- csd_census %>% 
@@ -1410,7 +1410,7 @@ counterfactual <- csd_data %>%
   ) %>%
   ungroup()
 
-s3 <- bc_csd %>%
+s3_map <- bc_csd %>%
   left_join(counterfactual, by = "csd") %>%
   ggplot(aes(geometry = geometry, fill = counterfactual_pm25)) +
   geom_sf(color = NA) +
@@ -1440,19 +1440,30 @@ s3 <- bc_csd %>%
     unit_category = "metric"
   )
 
+s3_hist <- ggplot(data = counterfactual, aes(x=counterfactual_pm25)) +
+  geom_histogram(bins = 40,  
+                 fill = "#117733", 
+                 color = "#117733", 
+                 alpha = 0.7)+
+  xlab('μg/m³') + ylab('Count') +  
+  theme_classic(base_size = 24) +  
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+combined_s3 <- s3_map + s3_hist
+
 # save as JPEG
 ggsave(
   filename = "./Results/FigureS3.jpg",
-  plot     = s3,
-  width    = 10,
+  plot     = combined_s3,
+  width    = 18,
   height   = 9,
   units    = "in",
   dpi      = 300
 )
 
-print(s3)
+print(combined_s3)
 
-#### Figure S4 - Map of the weekly average non-wildfire smoke PM2.5 ####
+#### Figure S4 - Map and histogram of the weekly average non-wildfire smoke PM2.5 ####
 csd_data <- readRDS("./Processed_Data/CSD_weekly_PM25_2010-2023_processed.RDS")
 
 bc_csd <- csd_census %>% 
@@ -1464,7 +1475,7 @@ mean_nonwfs <- csd_data %>%
   group_by(csd) %>%
   summarize(mean_nonwfs_pm25 = mean(non_wfs_weekly_avg_pm25, na.rm = TRUE)) 
 
-s4 <- bc_csd %>%
+s4_map <- bc_csd %>%
   left_join(mean_nonwfs, by = "csd") %>%
   ggplot(aes(geometry = geometry, fill = mean_nonwfs_pm25)) +
   geom_sf(color = NA) +
@@ -1495,34 +1506,46 @@ s4 <- bc_csd %>%
     unit_category = "metric"
   )
 
+s4_hist <- ggplot(data = csd_data, aes(x=non_wfs_weekly_avg_pm25)) +
+  geom_histogram(bins = 40,  
+                 fill = "#B0C6DF", 
+                 color = "#B0C6DF", 
+                 alpha = 0.7)+
+  xlab('μg/m³') + ylab('Count') +  
+  scale_y_continuous(labels = scales::label_comma()) +
+  theme_classic(base_size = 24) +  
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+combined_s4 <- s4_map + s4_hist
+
 # save as JPEG
 ggsave(
   filename = "./Results/FigureS4.jpg",
-  plot     = s4,
-  width    = 10,      
+  plot     = combined_s4,
+  width    = 18,      
   height   = 9,       
   units    = "in",
   dpi      = 300
 )
 
-print(s4)
+print(combined_s4)
 
 
-#### Figure S5 - Map of the weekly average total PM2.5 ####
-csd_processed <- readRDS("./Processed_Data/CSD_weekly_PM25_2010-2023_processed.RDS")
+#### Figure S5 - Map and histogram of the weekly average total PM2.5 ####
+csd_data <- readRDS("./Processed_Data/CSD_weekly_PM25_2010-2023_processed.RDS")
 
 bc_csd <- csd_census %>% 
   mutate(csd = GeoUID) %>%
   st_transform(crs = 26910)
 
 # calculate average total PM2.5
-mean_total_pm25 <- csd_processed %>%
+mean_total_pm25 <- csd_data %>%
   group_by(csd) %>%
   summarise(total_pm25 = round(mean(weekly_avg_pm25),2), .groups = "drop")
 
 map_data <- left_join(bc_csd, mean_total_pm25, by = "csd")
 
-s5 <- ggplot(map_data, aes(geometry = geometry, fill = total_pm25)) +
+s5_map <- ggplot(map_data, aes(geometry = geometry, fill = total_pm25)) +
   geom_sf(color = NA) +
   scale_fill_distiller(
     palette = "YlOrRd", direction = 1,
@@ -1551,16 +1574,28 @@ s5 <- ggplot(map_data, aes(geometry = geometry, fill = total_pm25)) +
     unit_category = "metric"
   )
 
-print(s5)
+s5_hist <- ggplot(data = csd_data, aes(x=weekly_avg_pm25)) +
+  geom_histogram(bins = 80,  
+                 fill = "grey40", 
+                 color = "grey40", 
+                 alpha = 0.7)+
+  xlab('μg/m³') + ylab('Count') +  
+  scale_y_continuous(labels = scales::label_comma()) +
+  theme_classic(base_size = 24) +  
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+combined_s5 <- s5_map + s5_hist
 
 # Save as .jpg
 ggsave(
   filename = "./Results/FigureS5.jpg",
-  plot     = s5,
-  width    = 10,
+  plot     = combined_s5,
+  width    = 18,
   height   = 9,
   dpi      = 300
 )
+
+print(combined_s5)
 
 #### Figure S6 - Distributions of the 12 Metrics ####
 # Load and convert metrics to long format
